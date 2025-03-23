@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelGuide</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .splash-screen {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                        url('https://images.unsplash.com/photo-1506461883276-594a12b11cf3') center/cover;
+        }
+        #map, .map-container { 
+            height: 300px; 
+            width: 100%;
+        }
+        /* Hide scrollbar but allow scrolling */
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari and Opera */
+        }
+        /* Custom animations */
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Image upload preview */
+        .preview-container {
+            position: relative;
+        }
+        .preview-container .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Profile section */
+        .profile-header {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+        }
+        /* Custom tabs */
+        .tab-active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Splash Screen -->
+    <div class="splash-screen fixed inset-0 z-50 h-screen w-full flex flex-col items-center justify-center">
+        <h1 class="text-5xl font-bold text-white mb-4">TravelGuide</h1>
+        <p class="text-white text-lg mb-6">Discover. Experience. Share.</p>
+        <div class="w-16 h-1 bg-white rounded-full animate-pulse"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div id="authContainer" class="hidden fixed inset-0 z-40 bg-white">
+        <!-- Login Form -->
+        <div id="loginForm" class="p-6 max-w-sm mx-auto pt-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-semibold mb-2">Welcome back</h2>
+                <p class="text-gray-600">Sign in to continue your journey</p>
+            </div>
+            <form class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" class="pl-10 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" class="pl-10 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember-me" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-700">
+                            Remember me
+                        </label>
+                    </div>
+                    <div class="text-sm">
+                        <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+                            Forgot password?
+                        </a>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                    <i class="bi bi-box-arrow-in-right mr-2"></i>
+                    Login
+                </button>
+                <div class="text-center">
+                    <span class="text-gray-600">Don't have an account?</span>
+                    <a href="#" id="showRegister" class="text-blue-600 font-medium ml-1">Sign up</a>
+                </div>
+            </form>
+            <div class="mt-6">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">Or continue with</span>
+                    </div>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                    <button type="button" class="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center">
+                        <i class="bi bi-google mr-2 text-red-500"></i>
+                        Google
+                    </button>
+                    <button type="button" class="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center">
+                        <i class="bi bi-facebook mr-2 text-blue-600"></i>
+                        Facebook
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="hidden p-6 max-w-sm mx-auto pt-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-semibold mb-2">Create Account</h2>
+                <p class="text-gray-600">Start your travel journey today</p>
+            </div>
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-person text-gray-400"></i>
+                        </div>
+                        <input type="text" class="pl-10 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" class="pl-10 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" class="pl-10 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Must be at least 8 characters with 1 uppercase, 1 number</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-lock-fill text-gray-400"></i>
+                        </div>
+                        <input type="password" class="pl-10 block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <input id="terms" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <label for="terms" class="ml-2 block text-sm text-gray-700">
+                        I agree to the <a href="#" class="text-blue-600">Terms of Service</a> and <a href="#" class="text-blue-600">Privacy Policy</a>
+                    </label>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                    <i class="bi bi-person-plus mr-2"></i>
+                    Create Account
+                </button>
+                <div class="text-center">
+                    <span class="text-gray-600">Already have an account?</span>
+                    <a href="#" id="showLogin" class="text-blue-600 font-medium ml-1">Sign in</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="appContainer" class="hidden">
+        <!-- Main Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t z-10">
+            <div class="flex justify-around">
+                <button id="navHome" class="flex flex-col items-center justify-center py-2 w-1/5 text-blue-600">
+                    <i class="bi bi-house-fill text-xl"></i>
+                    <span class="text-xs">Home</span>
+                </button>
+                <button id="navExplore" class="flex flex-col items-center justify-center py-2 w-1/5 text-gray-500">
+                    <i class="bi bi-compass text-xl"></i>
+                    <span class="text-xs">Explore</span>
+                </button>
+                <button id="navAddPost" class="flex flex-col items-center justify-center py-2 w-1/5 text-gray-500">
+                    <div class="bg-blue-500 w-12 h-12 rounded-full flex items-center justify-center -mt-5">
+                        <i class="bi bi-plus-lg text-xl text-white"></i>
+                    </div>
+                </button>
+                <button id="navTrips" class="flex flex-col items-center justify-center py-2 w-1/5 text-gray-500">
+                    <i class="bi bi-briefcase text-xl"></i>
+                    <span class="text-xs">Trips</span>
+                </button>
+                <button id="navProfile" class="flex flex-col items-center justify-center py-2 w-1/5 text-gray-500">
+                    <i class="bi bi-person text-xl"></i>
+                    <span class="text-xs">Profile</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Feed Screen -->
+        <div id="mainFeedScreen" class="pb-16 pt-4">
+            <!-- Search Bar -->
+            <div class="px-4 mb-4">
+                <div class="relative">
+                    <input type="text" placeholder="Search destinations, activities..." class="w-full py-2 px-4 pl-10 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="flex gap-3 overflow-x-auto scrollbar-hide px-4 py-2">
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-full whitespace-nowrap">All</button>
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">Popular</button>
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">Nature</button>
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">Historical</button>
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">Adventure</button>
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">Beach</button>
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full whitespace-nowrap">Mountain</button>
+            </div>
+
+            <!-- Featured Reels -->
+            <div class="mt-4 mb-6">
+                <div class="flex items-center justify-between px-4 mb-3">
+                    <h2 class="text-lg font-semibold">Featured Reels</h2>
+                    <a href="#" class="text-blue-600">See all</a>
+                </div>
+                <div class="flex overflow-x-auto gap-3 pl-4 scrollbar-hide">
+                    <div class="w-28 flex-shrink-0">
+                        <div class="relative h-40 w-28 rounded-xl overflow-hidden mb-1">
+                            <img src="https://images.unsplash.com/photo-1516483638261-f4dbaf036963" class="h-full w-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2">
+                                <span class="text-white text-xs">Italy Vibes</span>
+                            </div>
+                            <div class="absolute top-2 right-2 bg-black/50 rounded-full h-7 w-7 flex items-center justify-center">
+                                <i class="bi bi-play-fill text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80" class="w-5 h-5 rounded-full mr-1">
+                            <span class="text-xs truncate">Sarah K.</span>
+                        </div>
+                    </div>
+
+                    <div class="w-28 flex-shrink-0">
+                        <div class="relative h-40 w-28 rounded-xl overflow-hidden mb-1">
+                            <img src="https://images.unsplash.com/photo-1535139262971-c51845709a48" class="h-full w-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2">
+                                <span class="text-white text-xs">Paradise</span>
+                            </div>
+                            <div class="absolute top-2 right-2 bg-black/50 rounded-full h-7 w-7 flex items-center justify-center">
+                                <i class="bi bi-play-fill text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a" class="w-5 h-5 rounded-full mr-1">
+                            <span class="text-xs truncate">David M.</span>
+                        </div>
+                    </div>
+
+                    <div class="w-28 flex-shrink-0">
+                        <div class="relative h-40 w-28 rounded-xl overflow-hidden mb-1">
+                            <img src="https://images.unsplash.com/photo-1506929562872-bb421503ef21" class="h-full w-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2">
+                                <span class="text-white text-xs">Mountain Trek</span>
+                            </div>
+                            <div class="absolute top-2 right-2 bg-black/50 rounded-full h-7 w-7 flex items-center justify-center">
+                                <i class="bi bi-play-fill text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1499952127939-9bbf5af6c51c" class="w-5 h-5 rounded-full mr-1">
+                            <span class="text-xs truncate">Aisha J.</span>
+                        </div>
+                    </div>
+
+                    <div class="w-28 flex-shrink-0">
+                        <div class="relative h-40 w-28 rounded-xl overflow-hidden mb-1">
+                            <img src="https://images.unsplash.com/photo-1518548419970-58e3b4079ab2" class="h-full w-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2">
+                                <span class="text-white text-xs">Urban Life</span>
+                            </div>
+                            <div class="absolute top-2 right-2 bg-black/50 rounded-full h-7 w-7 flex items-center justify-center">
+                                <i class="bi bi-play-fill text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d" class="w-5 h-5 rounded-full mr-1">
+                            <span class="text-xs truncate">Michael T.</span>
+                        </div>
+                    </div>
+
+                    <div class="w-28 flex-shrink-0">
+                        <div class="relative h-40 w-28 rounded-xl overflow-hidden mb-1">
+                            <img src="https://images.unsplash.com/photo-1682687982029-edb9aecf5f89" class="h-full w-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2">
+                                <span class="text-white text-xs">Food Tour</span>
+                            </div>
+                            <div class="absolute top-2 right-2 bg-black/50 rounded-full h-7 w-7 flex items-center justify-center">
+                                <i class="bi bi-play-fill text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" class="w-5 h-5 rounded-full mr-1">
+                            <span class="text-xs truncate">Emma L.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Popular Destinations -->
+            <div class="px-4 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold">Popular Destinations</h2>
+                    <a href="#" class="text-blue-600">View all</a>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-xl overflow-hidden shadow-md destination-card">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da" class="w-full h-36 object-cover">
+                            <div class="absolute top-2 right-2">
+                                <button class="h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition">
+                                    <i class="bi bi-heart text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold">Taj Mahal</h3>
+                            <div class="flex items-center text-gray-600 text-xs mt-1">
+                                <i class="bi bi-geo-alt mr-1"></i>
+                                <span>Agra, India</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="flex items-center">
+                                    <i class="bi bi-star-fill text-yellow-400 mr-1"></i>
+                                    <span class="text-sm font-semibold">4.9</span>
+                                    <span class="text-xs text-gray-500 ml-1">(2.8k)</span>
+                                </div>
+                                <div class="text-blue-600 text-xs font-semibold">$25/person</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl overflow-hidden shadow-md destination-card">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1565073624420-9f4fd815bcfb" class="w-full h-36 object-cover">
+                            <div class="absolute top-2 right-2">
+                                <button class="h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition">
+                                    <i class="bi bi-heart text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold">Bali Beach</h3>
+                            <div class="flex items-center text-gray-600 text-xs mt-1">
+                                <i class="bi bi-geo-alt mr-1"></i>
+                                <span>Bali, Indonesia</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="flex items-center">
+                                    <i class="bi bi-star-fill text-yellow-400 mr-1"></i>
+                                    <span class="text-sm font-semibold">4.8</span>
+                                    <span class="text-xs text-gray-500 ml-1">(3.5k)</span>
+                                </div>
+                                <div class="text-blue-600 text-xs font-semibold">$40/person</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl overflow-hidden shadow-md destination-card">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1564507592333-c60657eea523" class="w-full h-36 object-cover">
+                            <div class="absolute top-2 right-2">
+                                <button class="h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition">
+                                    <i class="bi bi-heart text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold">Eiffel Tower</h3>
+                            <div class="flex items-center text-gray-600 text-xs mt-1">
+                                <i class="bi bi-geo-alt mr-1"></i>
+                                <span>Paris, France</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="flex items-center">
+                                    <i class="bi bi-star-fill text-yellow-400 mr-1"></i>
+                                    <span class="text-sm font-semibold">4.7</span>
+                                    <span class="text-xs text-gray-500 ml-1">(5.2k)</span>
+                                </div>
+                                <div class="text-blue-600 text-xs font-semibold">$20/person</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl overflow-hidden shadow-md destination-card">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1555992336-fb0d29498b13" class="w-full h-36 object-cover">
+                            <div class="absolute top-2 right-2">
+                                <button class="h-8 w-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition">
+                                    <i class="bi bi-heart text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold">Grand Canyon</h3>
+                            <div class="flex items-center text-gray-600 text-xs mt-1">
+                                <i class="bi bi-geo-alt mr-1"></i>
+                                <span>Arizona, USA</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="flex items-center">
+                                    <i class="bi bi-star-fill text-yellow-400 mr-1"></i>
+                                    <span class="text-sm font-semibold">4.9</span>
+                                    <span class="text-xs text-gray-500 ml-1">(4.1k)</span>
+                                </div>
+                                <div class="text-blue-600 text-xs font-semibold">$35/person</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommended Trips -->
+            <div class="px-4 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold">Recommended Trips</h2>
+                    <a href="#" class="text-blue-600">View all</a>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex bg-white rounded-xl overflow-hidden shadow-md p-2">
+                        <img src="https://images.unsplash.com/photo-1519922639192-e73293ca430e" class="w-24 h-24 rounded-lg object-cover">
+                        <div class="ml-3 flex-1">
+                            <h3 class="font-medium">Amazing Thailand</h3>
+                            <div class="flex items-center text-xs text-gray-500 mt-1">
+                                <i class="bi bi-calendar3 mr-1"></i>
+                                <span>7 days</span>
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-people mr-1"></i>
+                                <span>Group tour</span>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="flex -space-x-2">
+                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80" class="w-5 h-5 rounded-full border border-white">
+                                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a" class="w-5 h-5 rounded-full border border-white">
+                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d" class="w-5 h-5 rounded-full border border-white">
+                                </div>
+                                <span class="ml-2 text-xs text-gray-500">+12 going</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <div class="text-blue-600 font-semibold">$899</div>
+                                <button class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex bg-white rounded-xl overflow-hidden shadow-md p-2">
+                        <img src="https://images.unsplash.com/photo-1463695970743-ae65cca05743" class="w-24 h-24 rounded-lg object-cover">
+                        <div class="ml-3 flex-1">
+                            <h3 class="font-medium">Italian Adventure</h3>
+                            <div class="flex items-center text-xs text-gray-500 mt-1">
+                                <i class="bi bi-calendar3 mr-1"></i>
+                                <span>10 days</span>
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-people mr-1"></i>
+                                <span>Private tour</span>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="flex -space-x-2">
+                                    <img src="https://images.unsplash.com/photo-1499952127939-9bbf5af6c51c" class="w-5 h-5 rounded-full border border-white">
+                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" class="w-5 h-5 rounded-full border border-white">
+                                </div>
+                                <span class="ml-2 text-xs text-gray-500">+8 going</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-1">
+                                <div class="text-blue-600 font-semibold">$1,299</div>
+                                <button class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Detail Screen -->
+        <div id="locationDetailScreen" class="hidden pb-16">
+            <div class="relative">
+                <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da" class="w-full h-60 object-cover">
+                <div class="absolute top-0 left-0 right-0 p-4 flex justify-between">
+                    <button id="backToMainFeed" class="h-10 w-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                        <i class="bi bi-arrow-left text-white"></i>
+                    </button>
+                    <div class="flex space-x-2">
+                        <button class="h-10 w-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                            <i class="bi bi-heart text-white"></i>
+                        </button>
+                        <button class="h-10 w-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                            <i class="bi bi-share text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-t-3xl -mt-6 relative px-4 pt-6 pb-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-2xl font-bold">Taj Mahal</h1>
+                        <div class="flex items-center text-gray-600 mt-1">
+                            <i class="bi bi-geo-alt mr-1"></i>
+                            <span>Agra, India</span>
+                        </div>
+                    </div>
+                    <div class="bg-blue-100 px-3 py-1 rounded-lg text-blue-600 font-semibold">
+                        $25/person
+                    </div>
+                </div>
+                
+                <div class="flex items-center mt-4 space-x-4 pb-4 border-b">
+                    <div class="flex items-center">
+                        <i class="bi bi-star-fill text-yellow-400 mr-1"></i>
+                        <span class="font-semibold">4.9</span>
+                        <span class="text-sm text-gray-500 ml-1">(2.8k reviews)</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="bi bi-clock mr-1"></i>
+                        <span class="text-sm">Open 6:00 AM - 6:30 PM</span>
+                    </div>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="flex border-b mt-4">
+                    <button class="tab-active py-2 px-4 font-medium text-sm flex-1 text-center">About</button>
+                    <button class="py-2 px-4 font-medium text-sm flex-1 text-center text-gray-500">Reviews</button>
+                    <button class="py-2 px-4 font-medium text-sm flex-1 text-center text-gray-500">Photos</button>
+                </div>
+                
+                <!-- About Section -->
+                <div class="py-4">
+                    <p class="text-gray-700">The Taj Mahal is an ivory-white marble mausoleum on the right bank of the river Yamuna in Agra, India. It was commissioned in 1632 by the Mughal emperor Shah Jahan to house the tomb of his favorite wife, Mumtaz Mahal.</p>
+                    
+                    <h2 class="text-lg font-semibold mt-6 mb-3">Location</h2>
+                    <div id="detailMap" class="h-48 rounded-lg overflow-hidden"></div>
+                    
+                    <h2 class="text-lg font-semibold mt-6 mb-3">Travel Tips</h2>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="bi bi-check-circle-fill text-green-500 mt-0.5 mr-2"></i>
+                            <span>Best time to visit: October to March (cooler months)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="bi bi-check-circle-fill text-green-500 mt-0.5 mr-2"></i>
+                            <span>Entry fee: ₹1100 for foreigners, ₹50 for Indians</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="bi bi-check-circle-fill text-green-500 mt-0.5 mr-2"></i>
+                            <span>Open every day except Friday</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="bi bi-check-circle-fill text-green-500 mt-0.5 mr-2"></i>
+                            <span>Carry water and wear comfortable shoes</span>
+                        </li>
+                    </ul>
+
+                    <h2 class="text-lg font-semibold mt-6 mb-3">Traveler Photos</h2>
+                    <div class="grid grid-cols-3 gap-2">
+                        <img src="https://images.unsplash.com/photo-1564507592333-c60657eea523" class="w-full h-24 object-cover rounded-lg">
+                        <img src="https://images.unsplash.com/photo-1585135497273-1a86b09fe70e" class="w-full h-24 object-cover rounded-lg">
+                        <img src="https://images.unsplash.com/photo-1548013146-72479768bada" class="w-full h-24 object-cover rounded-lg">
+                        <img src="https://images.unsplash.com/photo-1506461883276-594a12b11cf3" class="w-full h-24 object-cover rounded-lg">
+                        <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da" class="w-full h-24 object-cover rounded-lg">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1605649487212-47bdab064df7" class="w-full h-24 object-cover rounded-lg brightness-50">
+                            <div class="absolute inset-0 flex items-center justify-center text-white font-semibold">+24</div>
+                        </div>
+                    </div>
+
+                    <div class="my-6">
+                        <h2 class="text-lg font-semibold mb-3">Estimated Costs</h2>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Entry tickets (2 adults)</span>
+                                <span class="font-medium">$50</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Guide service</span>
+                                <span class="font-medium">$25</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Transportation (round trip)</span>
+                                <span class="font-medium">$20</span>
+                            </div>
+                            <div class="flex justify-between font-semibold pt-2 border-t mt-2">
+                                <span>Total estimated cost</span>
+                                <span class="text-blue-600">$95</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fixed bottom-20 left-0 right-0 px-4 mb-4">
+                    <button class="bg-blue-600 text-white py-3 w-full rounded-xl font-semibold flex items-center justify-center">
+                        <i class="bi bi-calendar-plus mr-2"></i>
+                        Add to Trip Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Post Screen -->
+        <div id="addPostScreen" class="hidden pb-16 pt-4">
+            <div class="px-4">
+                <div class="flex items-center justify-between mb-6">
+                    <button id="cancelAddPost" class="text-gray-500">Cancel</button>
+                    <h1 class="text-xl font-semibold">Add New Post</h1>
+                    <button id="submitPost" class="text-blue-600 font-semibold">Post</button>
+                </div>
+
+                <div class="mb-6">
+                    <div class="bg-gray-100 p-4 rounded-xl">
+                        <div id="imagePreviewContainer" class="hidden mb-4 grid grid-cols-3 gap-2">
+                            <!-- Image previews will appear here -->
+                        </div>
+
+                        <div id="uploadPrompt" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <i class="bi bi-image text-4xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-500 mb-3">Upload photos or videos from your trip</p>
+                            <input type="file" id="fileInput" multiple accept="image/*,video/*" class="hidden">
+                            <label for="fileInput" class="bg-blue-600 text-white py-2 px-4 rounded-lg inline-block cursor-pointer">
+                                Select Files
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <div class="relative">
+                        <input type="text" placeholder="Where did you go?" class="w-full py-3 px-4 pl-10 border border-gray-300 rounded-lg">
+                        <i class="bi bi-geo-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Caption</label>
+                    <textarea rows="3" placeholder="Share your experience..." class="w-full py-3 px-4 border border-gray-300 rounded-lg resize-none"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Trip Cost (Optional)</label>
+                    <div class="relative">
+                        <input type="number" placeholder="Enter an amount" class="w-full py-3 px-4 pl-10 border border-gray-300 rounded-lg">
+                        <i class="bi bi-currency-dollar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm flex items-center">
+                            #adventure
+                            <button class="ml-1"><i class="bi bi-x"></i></button>
+                        </span>
+                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm flex items-center">
+                            #travel
+                            <button class="ml-1"><i class="bi bi-x"></i></button>
+                        </span>
+                        <input type="text" placeholder="Add a tag..." class="text-sm border-none focus:ring-0 py-1">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Post As</label>
+                    <div class="flex gap-3">
+                        <label class="flex-1">
+                            <input type="radio" name="postType" value="photo" checked class="hidden">
+                            <div class="border-2 border-gray-300 hover:border-blue-500 rounded-lg p-3 text-center cursor-pointer transition peer-checked:border-blue-600 peer-checked:bg-blue-50">
+                                <i class="bi bi-image text-2xl"></i>
+                                <p class="mt-1">Regular Post</p>
+                            </div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="postType" value="reel" class="hidden">
+                            <div class="border-2 border-gray-300 hover:border-blue-500 rounded-lg p-3 text-center cursor-pointer transition">
+                                <i class="bi bi-camera-reels text-2xl"></i>
+                                <p class="mt-1">Reel</p>
+                            </div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="postType" value="guide" class="hidden">
+                            <div class="border-2 border-gray-300 hover:border-blue-500 rounded-lg p-3 text-center cursor-pointer transition">
+                                <i class="bi bi-book text-2xl"></i>
+                                <p class="mt-1">Travel Guide</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explore Screen -->
+        <div id="exploreScreen" class="hidden pb-16 pt-4">
+            <div class="px-4 mb-4">
+                <div class="relative">
+                    <input type="text" placeholder="Search for destinations, experiences..." class="w-full py-3 px-4 pl-10 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                </div>
+            </div>
+
+            <div class="px-4 mb-6">
+                <h2 class="text-lg font-semibold mb-4">Explore Map</h2>
+                <div id="exploreMap" class="h-48 rounded-lg overflow-hidden mb-4"></div>
+                
+                <div class="flex flex-wrap gap-2">
+                    <button class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">Nearby</button>
+                    <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Popular</button>
+                    <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Trending</button>
+                    <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Saved</button>
+                </div>
+            </div>
+
+            <div class="px-4 mb-6">
+                <h2 class="text-lg font-semibold mb-3">Trending Destinations</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center bg-white rounded-xl overflow-hidden shadow-md">
+                        <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4" class="w-24 h-24 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium">Santorini</h3>
+                            <p class="text-xs text-gray-500">Greece</p>
+                            <div class="flex items-center mt-1">
+                                <i class="bi bi-star-fill text-yellow-400 mr-1 text-sm"></i>
+                                <span class="text-xs">4.9 (3.5k reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center bg-white rounded-xl overflow-hidden shadow-md">
+                        <img src="https://images.unsplash.com/photo-1542051841857-5f90071e7989" class="w-24 h-24 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium">Tokyo</h3>
+                            <p class="text-xs text-gray-500">Japan</p>
+                            <div class="flex items-center mt-1">
+                                <i class="bi bi-star-fill text-yellow-400 mr-1 text-sm"></i>
+                                <span class="text-xs">4.8 (5.2k reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center bg-white rounded-xl overflow-hidden shadow-md">
+                        <img src="https://images.unsplash.com/photo-1525874684015-58379d421a52" class="w-24 h-24 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium">Machu Picchu</h3>
+                            <p class="text-xs text-gray-500">Peru</p>
+                            <div class="flex items-center mt-1">
+                                <i class="bi bi-star-fill text-yellow-400 mr-1 text-sm"></i>
+                                <span class="text-xs">4.9 (2.8k reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 mb-6">
+                <h2 class="text-lg font-semibold mb-3">Experiences Near You</h2>
+                <div class="flex overflow-x-auto gap-3 scrollbar-hide pb-2">
+                    <div class="w-40 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-sm">
+                        <img src="https://images.unsplash.com/photo-1596178065887-1198b6148b2b" class="w-full h-32 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium text-sm">Food Tour</h3>
+                            <p class="text-xs text-gray-500 mb-1">Local cuisine exploration</p>
+                            <div class="text-blue-600 text-xs font-semibold">$45/person</div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-40 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-sm">
+                        <img src="https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81" class="w-full h-32 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium text-sm">Hiking Trip</h3>
+                            <p class="text-xs text-gray-500 mb-1">Mountain trails</p>
+                            <div class="text-blue-600 text-xs font-semibold">$30/person</div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-40 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-sm">
+                        <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945" class="w-full h-32 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium text-sm">Boat Tour</h3>
+                            <p class="text-xs text-gray-500 mb-1">Coastal sightseeing</p>
+                            <div class="text-blue-600 text-xs font-semibold">$55/person</div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-40 flex-shrink-0 bg-white rounded-xl overflow-hidden shadow-sm">
+                        <img src="https://images.unsplash.com/photo-1530062845289-9109b2c9c868" class="w-full h-32 object-cover">
+                        <div class="p-3">
+                            <h3 class="font-medium text-sm">City Walking</h3>
+                            <p class="text-xs text-gray-500 mb-1">Historical sites</p>
+                            <div class="text-blue-600 text-xs font-semibold">$20/person</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trips Screen -->
+        <div id="tripsScreen" class="hidden pb-16 pt-4">
+            <div class="px-4 mb-4">
+                <h1 class="text-2xl font-bold mb-6">My Trips</h1>
+                
+                <!-- Tabs -->
+                <div class="flex border-b">
+                    <button class="tab-active py-2 px-4 font-medium text-sm flex-1 text-center">Upcoming</button>
+                    <button class="py-2 px-4 font-medium text-sm flex-1 text-center text-gray-500">Past</button>
+                    <button class="py-2 px-4 font-medium text-sm flex-1 text-center text-gray-500">Saved</button>
+                </div>
+            </div>
+            
+            <div class="px-4 mb-6">
+                <!-- Trip Cards -->
+                <div class="space-y-5">
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md">
+                        <img src="https://images.unsplash.com/photo-1530521954074-e64f6810b32d" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-semibold text-lg">Bali Adventure</h3>
+                                <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">Upcoming</span>
+                            </div>
+                            <div class="flex items-center text-gray-500 text-sm mt-2">
+                                <i class="bi bi-calendar3 mr-2"></i>
+                                <span>May 15 - May 22, 2023</span>
+                            </div>
+                            <div class="flex items-center text-gray-500 text-sm mt-1">
+                                <i class="bi bi-people mr-2"></i>
+                                <span>2 people</span>
+                            </div>
+                            <div class="border-t my-3"></div>
+                            <div class="flex justify-between">
+                                <div class="flex items-center font-semibold text-blue-600">
+                                    <i class="bi bi-wallet2 mr-2"></i>
+                                    Total: $1,250
+                                </div>
+                                <button class="bg-blue-100 text-blue-600 py-1 px-3 rounded-lg text-sm font-medium">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md">
+                        <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-semibold text-lg">Mountain Retreat</h3>
+                                <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">Upcoming</span>
+                            </div>
+                            <div class="flex items-center text-gray-500 text-sm mt-2">
+                                <i class="bi bi-calendar3 mr-2"></i>
+                                <span>Jun 10 - Jun 15, 2023</span>
+                            </div>
+                            <div class="flex items-center text-gray-500 text-sm mt-1">
+                                <i class="bi bi-people mr-2"></i>
+                                <span>4 people</span>
+                            </div>
+                            <div class="border-t my-3"></div>
+                            <div class="flex justify-between">
+                                <div class="flex items-center font-semibold text-blue-600">
+                                    <i class="bi bi-wallet2 mr-2"></i>
+                                    Total: $850
+                                </div>
+                                <button class="bg-blue-100 text-blue-600 py-1 px-3 rounded-lg text-sm font-medium">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-4">
+                <button class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center">
+                    <i class="bi bi-plus-circle mr-2"></i>
+                    Plan a New Trip
+                </button>
+            </div>
+        </div>
+
+        <!-- Profile Screen -->
+        <div id="profileScreen" class="hidden pb-16">
+            <div class="profile-header py-6 px-4">
+                <div class="flex items-center justify-end mb-4">
+                    <button class="h-8 w-8 flex items-center justify-center rounded-full bg-white/30 backdrop-blur-sm">
+                        <i class="bi bi-gear text-white"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center">
+                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" class="w-20 h-20 rounded-full border-2 border-white object-cover">
+                    <div class="ml-4 flex-1">
+                        <h1 class="text-white text-xl font-bold">Sarah Johnson</h1>
+                        <p class="text-white/80 text-sm">Travel enthusiast | Photographer</p>
+                    </div>
+                </div>
+                
+                <div class="flex mt-5 bg-white/20 backdrop-blur-sm rounded-lg p-2 text-white">
+                    <div class="flex-1 text-center p-2">
+                        <h3 class="text-xl font-bold">24</h3>
+                        <p class="text-xs">Countries</p>
+                    </div>
+                    <div class="flex-1 text-center p-2">
+                        <h3 class="text-xl font-bold">156</h3>
+                        <p class="text-xs">Posts</p>
+                    </div>
+                    <div class="flex-1 text-center p-2">
+                        <h3 class="text-xl font-bold">2.4K</h3>
+                        <p class="text-xs">Followers</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex border-b">
+                <button class="tab-active py-3 px-4 font-medium text-sm flex-1 text-center flex justify-center items-center">
+                    <i class="bi bi-grid-3x3 mr-2"></i>
+                    Posts
+                </button>
+                <button class="py-3 px-4 font-medium text-sm flex-1 text-center text-gray-500 flex justify-center items-center">
+                    <i class="bi bi-camera-reels mr-2"></i>
+                    Reels
+                </button>
+                <button class="py-3 px-4 font-medium text-sm flex-1 text-center text-gray-500 flex justify-center items-center">
+                    <i class="bi bi-bookmark mr-2"></i>
+                    Saved
+                </button>
+            </div>
+            
+            <!-- Posts Grid -->
+            <div class="grid grid-cols-3 gap-1">
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1530521954074-e64f6810b32d" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1519922639192-e73293ca430e" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1463695970743-ae65cca05743" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1565073624420-9f4fd815bcfb" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1585135497273-1a86b09fe70e" class="w-full h-full object-cover">
+                </div>
+                <div class="aspect-square">
+                    <img src="https://images.unsplash.com/photo-1564507592333-c60657eea523" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize maps
+        let detailMap, exploreMap;
+        
+        function initializeMaps() {
+            // Detail Map
+            if (document.getElementById('detailMap')) {
+                detailMap = L.map('detailMap').setView([27.1751, 78.0421], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                }).addTo(detailMap);
+                L.marker([27.1751, 78.0421]).addTo(detailMap);
+            }
+            
+            // Explore Map
+            if (document.getElementById('exploreMap')) {
+                exploreMap = L.map('exploreMap').setView([51.505, -0.09], 5);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                }).addTo(exploreMap);
+                
+                // Add some sample markers for destinations
+                L.marker([51.507, -0.12]).addTo(exploreMap).bindPopup("London, UK");
+                L.marker([48.856, 2.352]).addTo(exploreMap).bindPopup("Paris, France");
+                L.marker([41.902, 12.496]).addTo(exploreMap).bindPopup("Rome, Italy");
+                L.marker([40.416, -3.703]).addTo(exploreMap).bindPopup("Madrid, Spain");
+            }
+        }
+
+        // Show splash screen for 2 seconds then show login
+        setTimeout(() => {
+            document.querySelector('.splash-screen').classList.add('hidden');
+            document.getElementById('authContainer').classList.remove('hidden');
+        }, 2000);
+
+        // Auth navigation
+        document.getElementById('showRegister').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        });
+
+        document.getElementById('showLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        });
+
+        // Form handling
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Show main app after form submission
+                document.getElementById('authContainer').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+                document.getElementById('mainFeedScreen').classList.remove('hidden');
+                
+                // Initialize maps after DOM is loaded
+                setTimeout(() => {
+                    initializeMaps();
+                }, 100);
+            });
+        });
+
+        // Navigation
+        document.getElementById('navHome').addEventListener('click', () => {
+            hideAllScreens();
+            document.getElementById('mainFeedScreen').classList.remove('hidden');
+            setActiveNav('navHome');
+        });
+
+        document.getElementById('navExplore').addEventListener('click', () => {
+            hideAllScreens();
+            document.getElementById('exploreScreen').classList.remove('hidden');
+            setActiveNav('navExplore');
+            
+            // Force map to re-render when tab becomes visible
+            setTimeout(() => {
+                if (exploreMap) exploreMap.invalidateSize();
+            }, 100);
+        });
+
+        document.getElementById('navAddPost').addEventListener('click', () => {
+            hideAllScreens();
+            document.getElementById('addPostScreen').classList.remove('hidden');
+            setActiveNav('navAddPost');
+        });
+
+        document.getElementById('navTrips').addEventListener('click', () => {
+            hideAllScreens();
+            document.getElementById('tripsScreen').classList.remove('hidden');
+            setActiveNav('navTrips');
+        });
+
+        document.getElementById('navProfile').addEventListener('click', () => {
+            hideAllScreens();
+            document.getElementById('profileScreen').classList.remove('hidden');
+            setActiveNav('navProfile');
+        });
+
+        // Destination card click
+        document.querySelectorAll('.destination-card').forEach(card => {
+            card.addEventListener('click', () => {
+                hideAllScreens();
+                document.getElementById('locationDetailScreen').classList.remove('hidden');
+                
+                // Force map to re-render when detail screen becomes visible
+                setTimeout(() => {
+                    if (detailMap) detailMap.invalidateSize();
+                }, 100);
+            });
+        });
+
+        // Back button from location detail to main feed
+        document.getElementById('backToMainFeed').addEventListener('click', () => {
+            document.getElementById('locationDetailScreen').classList.add('hidden');
+            document.getElementById('mainFeedScreen').classList.remove('hidden');
+        });
+
+        // Cancel Add Post
+        document.getElementById('cancelAddPost').addEventListener('click', () => {
+            hideAllScreens();
+            document.getElementById('mainFeedScreen').classList.remove('hidden');
+            setActiveNav('navHome');
+            
+            // Reset the file input and preview
+            document.getElementById('fileInput').value = '';
+            document.getElementById('imagePreviewContainer').innerHTML = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+        });
+
+        // File upload handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                document.getElementById('uploadPrompt').classList.add('hidden');
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                document.getElementById('imagePreviewContainer').innerHTML = '';
+                
+                for (let i = 0; i < Math.min(files.length, 6); i++) {
+                    const file = files[i];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'preview-container';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-24 object-cover rounded-lg';
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                        removeBtn.onclick = function() {
+                            previewDiv.remove();
+                            if (document.getElementById('imagePreviewContainer').children.length === 0) {
+                                document.getElementById('imagePreviewContainer').classList.add('hidden');
+                                document.getElementById('uploadPrompt').classList.remove('hidden');
+                            }
+                        };
+                        
+                        previewDiv.appendChild(img);
+                        previewDiv.appendChild(removeBtn);
+                        document.getElementById('imagePreviewContainer').appendChild(previewDiv);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        function hideAllScreens() {
+            const screens = [
+                'mainFeedScreen', 
+                'locationDetailScreen', 
+                'addPostScreen',
+                'exploreScreen',
+                'tripsScreen',
+                'profileScreen'
+            ];
+            screens.forEach(screen => {
+                document.getElementById(screen).classList.add('hidden');
+            });
+        }
+
+        function setActiveNav(activeNavId) {
+            const navItems = ['navHome', 'navExplore', 'navAddPost', 'navTrips', 'navProfile'];
+            navItems.forEach(item => {
+                const element = document.getElementById(item);
+                if (item === activeNavId) {
+                    element.classList.add('text-blue-600');
+                    element.classList.remove('text-gray-500');
+                } else {
+                    element.classList.remove('text-blue-600');
+                    element.classList.add('text-gray-500');
+                }
+            });
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
